@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';export async function GET(){if(process.env.APP_MODE!=='mock')return NextResponse.json({error:{code:'NOT_CONFIGURED',message:'ETL audit storage is not configured.'}},{status:503});return NextResponse.json({data:[],latestStatus:'not_configured',mode:'demo'});}
