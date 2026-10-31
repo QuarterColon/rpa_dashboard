@@ -1,2 +1,2 @@
-import {NextResponse} from 'next/server'; import {demoQueues} from '@/lib/demo';import {listQueues} from '@/lib/a360';
-export async function GET(){if(process.env.APP_MODE==='mock')return NextResponse.json({data:demoQueues,mode:'demo'});try{return NextResponse.json({data:await listQueues(),mode:'live'});}catch(e){return NextResponse.json({error:{code:'A360_ERROR',message:e instanceof Error?e.message:'A360 queue request failed.'}},{status:502});}}
+import {NextResponse} from 'next/server';import {listQueues} from '@/lib/a360';
+export async function GET(){try{return NextResponse.json({data:await listQueues()});}catch(e){return NextResponse.json({error:{code:'A360_ERROR',message:e instanceof Error?e.message:'A360 queue request failed.'}},{status:502});}}

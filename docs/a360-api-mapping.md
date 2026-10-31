@@ -1,30 +1,22 @@
-# Automation Anywhere A360 API mapping
+# A360 endpoints used by the dashboard
 
-## Verification status
+This code uses live server-side requests only; it has no fixture fallback.
 
-Reviewed the official Automation Anywhere Control Room API portal and WLM guidance on 2026-10-29. No configured Control Room, tenant Swagger/OpenAPI document, deployment version, or credentials were available. Public documentation confirms multiple API generations: v3 and v4 WLM. Documentation warns that selected v3 operations are deprecated beginning with A360 v.43 in favor of v4. The tenant's `/swagger/` is authoritative for final request/response schemas. No live calls were made.
+| Purpose | Method and route | Code mapping |
+|---|---|---|
+| Obtain a Control Room token | `POST /v2/authentication` | Sends server-side `username` with `apiKey` (preferred) or `password`, then reads `token` or `jwtToken`; alternatively uses configured OAuth bearer token. |
+| Discover queues | `POST /v3/wlm/queues/list` | Sends filter, ascending ID sort and page controls; maps `list[].id` and `list[].name`. |
+| List queue items | `POST /v3/wlm/queues/{id}/workitems/list` | Paginates with `page.offset`/`page.length` and filters by `automationId` locally when process ID is entered. |
+| Execution detail (available adapter helper) | `GET /v3/activity/execution/{id}` | Can supply supplemental execution detail; no item-to-execution association is assumed. |
 
-| Operation | Method / path | What public documentation establishes | Dashboard use / status |
-|---|---|---|---|
-| Authentication | POST `/v2/authentication` (or OAuth bearer flow where configured) | v1 auth was discontinued from v.33; API calls use either X-Authorization token or OAuth Authorization bearer token, not both. Exact tenant auth policy unverified. | Not implemented; credentials remain server-side placeholders. |
-| Queue list | POST `/v3/wlm/queues/list` or tenant-supported v4 equivalent | WLM queue listing is a documented operation. Exact v4 body/response mapping must come from tenant Swagger. | Candidate discovery operation; not called. |
-| Work-item list | POST `/v3/wlm/queues/{id}/workitems/list` or tenant-supported v4 equivalent | Pagination uses `page.offset` and `page.length`; public guidance recommends no more than 1000 items (or 300 MB) per request. | Candidate ingestion operation; not called. |
-| Work-item detail/status | WLM queue/work-item operations | UI statuses documented include New, Active, Completed, Failed, Unknown, etc.; API enum names may differ by version. | Normalize only known status strings; source status retained. |
-| Execution history | Bot Execution Orchestrator API, including v3 activity list and execution detail | Public API portal provides execution monitoring operations. No verified public contract establishes a stable mapping from WLM work-item ID to each bot run or authoritative pickup/start/end event. | Unmatched/unknown until tenant configuration establishes a safe join. |
+Work-item fields map from the documented response names: `createdOn` (displayed as Added to queue), `startTime`, `endTime`, `totalPausedTime`, `automationId`, `queueId`, `id`, and `status`. Queue wait is `startTime - createdOn`; processing duration is `endTime - startTime`; total wall-clock duration is `endTime - createdOn`. Missing fields remain unavailable. The WLM list example confirming these fields is in older Enterprise documentation, so the target A360 Swagger remains the source of truth for the target release. API request bodies in code use the WLM list filter/sort/page shape; tenant error responses will be surfaced as sanitized HTTP errors.
 
-## Lifecycle field rules
+## Limits and caveats
 
-- **Pickup time:** Not established in the documented WLM work-item listing contract reviewed. Keep null unless a documented source or configured bot instrumentation provides this event.
-- **Process start/end:** Work-item status is not itself proof of an attempt's start/end timestamps. Populate only from a documented execution-history field confirmed in the tenant Swagger and correlated by stable identifier.
-- **Retries/attempt number:** Do not infer ordering solely from work-item status snapshots. Require a stable execution ID or source ordering field; otherwise retain correlation as unresolved.
-- **Watermarks:** The reviewed WLM list pagination documentation does not establish a supported updated-time filter. Do not advance an incremental watermark until the tenant API supports a verified change filter or a complete reconciliation has succeeded.
-- **Raw payloads:** Dashboard APIs do not expose payloads. A production ingestion implementation must allowlist safe fields and redact sensitive values before persistence/logging.
+- WLM item listing should use pages of at most 1,000 items (or 300 MB per response). The app defaults to 200, caps the configured page size at 1,000, and bounds pagination.
+- Work-item history and process filtering use WLM queue APIs; queue-based monitoring is supported. Non-queue process runs are not yet presented as work items.
+- Retry attempt count and correlation are not inferred from duplicate/status snapshots. Use only an authoritative attempt/run identifier if the source exposes it.
+- API credentials stay on the server. Raw payloads are not returned.
+- The app calls the public documented routes but has not been tested against a real Control Room response.
 
-## Next verification steps
-
-1. Obtain the target Control Room version and its `/swagger/` OpenAPI export.
-2. Confirm the supported WLM API version, auth flow, queue and work-item response schemas, filtering, limits and retention.
-3. Inspect Bot Execution Orchestrator schemas for execution IDs, timestamps and fields that correlate to work-item IDs.
-4. Validate with at least ten representative items, including retries and failures, then enable live ETL only after mapping review.
-
-Sources: [Control Room API portal](https://docs.automationanywhere.com/r/cloud-control-room-apis), [WLM recommended practices](https://docs.automationanywhere.com/r/automation-360/rpa-workload-guidelines), [API version comparison](https://docs.automationanywhere.com/r/control-room-apis/api-comparison-matrix), [work item statuses](https://docs.automationanywhere.com/r/cloud-manage/cloud-workload-an-overview/working-with-work-items).
+Sources: [Control Room API portal](https://docs.automationanywhere.com/r/cloud-control-room-apis), [WLM v3 reference](https://docs.automationanywhere.com/r/control-room-apis/wlm-api-supported-v3), [work-item list response example](https://docs.automationanywhere.com/bundle/enterprise-v11.3/page/enterprise/topics/control-room/control-room-api/get-all-work-items-in-queues-api.html), [WLM pagination guidance](https://docs.automationanywhere.com/r/automation-360/rpa-workload-guidelines), [Bot Execution Orchestrator v3](https://docs.automationanywhere.com/r/control-room-apis/bot-execution-orchestrator-api-supported-v3).

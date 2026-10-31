@@ -1,0 +1,2 @@
+import {listQueues,listWorkItems,type QueueRecord,type WorkItem} from './a360';
+export async function loadSelection(processId?:string,queueId?:string){let queues:QueueRecord[]=[];let items:WorkItem[]=[];let error:string|null=null;try{queues=await listQueues();if(queueId)items=await listWorkItems(queueId,processId);}catch(e){error=e instanceof Error?e.message:'A360 request failed.';}return {queues,items,error};}

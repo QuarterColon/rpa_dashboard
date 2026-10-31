@@ -1,13 +1,9 @@
 # Operations runbook
 
-## Current demo
+## Live setup
 
-Set `APP_MODE=mock`. Demo data is synthetic and visibly labeled; it is not production evidence. `npm run etl:sync -- --dry-run` reads `fixtures/demo-work-items.json` and reports normalized lifecycle records without writing data. `--queue <fixture-id>` filters fixture ingestion.
+Set `A360_BASE_URL`, `A360_WLM_VERSION=v3`, and either an OAuth bearer token or A360 username/API key in the server environment. Username/password is also supported if enabled in the Control Room. Start the app and load the dashboard. Queue listing and work-item requests run on demand; no demo data or database is used.
 
-## Production readiness blockers
+## Troubleshooting
 
-The live API client, source-data cache, incremental watermark and external schedule are not enabled. Before turning on live mode, export the configured Control Room Swagger contract, verify supported WLM and execution-history APIs, establish event timestamp/correlation semantics, implement and test bounded file or memory caching if required, then add organization-approved authentication. Keep incremental checkpoint unchanged after partial failure.
-
-## Troubleshooting guidance
-
-For source failures, inspect sanitized ETL run metadata, verify the Control Room is reachable, confirm service account permissions/token validity, and retry through the external scheduler after fixing the cause. Never include tokens, raw payloads, or unredacted error details in incident logs. For missing lifecycle times, review API mapping and bot instrumentation rather than filling them with refresh time. Restore the fixture file from source control; if a live cache is later introduced, document its recovery procedure separately.
+The UI displays sanitized A360 HTTP errors. Check the configured base URL, authentication method, token validity, queue permissions, API version, and request-body schema against the target Control Room Swagger. Never place tokens, raw payloads, or sensitive error text in logs or screenshots. If lifecycle fields are absent, leave them unavailable rather than substituting refresh time. Retry counts and activity correlation are not inferred without source identifiers.

@@ -1,4 +1,0 @@
-import {normalizeStatus} from './metrics';
-const now=Date.now();
-export const demoItems=Array.from({length:42},(_,i)=>{const pickup=new Date(now-(i+1)*3600000).toISOString(); const started=i%7===0?null:new Date(now-(i+1)*3600000+((i%5)+1)*60000).toISOString(); const ended=started&&i%9!==0?new Date(Date.parse(started)+((i%8)+2)*60000).toISOString():null; const sourceStatus=i%7===0?'ACTIVE':i%6===0?'UNSUCCESSFUL':i%9===0?'QUEUED':'SUCCESSFUL'; return {id:`WI-${String(84001+i)}`,queueId:`q${i%4+1}`,queueName:['Invoice Intake','Customer Onboarding','Claims Review','Vendor Setup'][i%4],businessReference:`REF-${70000+i}`,pickupAt:pickup,startedAt:started,endedAt:ended,status:normalizeStatus(sourceStatus),sourceStatus,attemptCount:i%6===0?2:1,botRunId:null};});
-export const demoQueues=[...new Set(demoItems.map(x=>x.queueName))].map((queueName,i)=>({id:`q${i+1}`,queueName,isActive:true}));
